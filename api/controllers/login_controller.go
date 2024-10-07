@@ -1,9 +1,11 @@
 package controllers
 
 import (
+	"GoLang-JWT-Postgres-Mysql-Restful-API/api/auth"
 	"GoLang-JWT-Postgres-Mysql-Restful-API/api/models"
 	"GoLang-JWT-Postgres-Mysql-Restful-API/api/responses"
 	"encoding/json"
+	"golang.org/x/crypto/bcrypt"
 	"io/ioutil"
 	"net/http"
 )
@@ -34,4 +36,20 @@ func (server *Server) Login(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	responses.JSON(w, http.StatusOK, token)
+}
+
+func (server *Server) SignIn(email, password string) (string, error) {
+	var err error
+
+	user := models.User{}
+
+	err = server.DB.Debug().Model(models.User{}).Where("email = ?", email).Take(&user).Error
+	if err != nil {
+		return "", err
+	}
+	err = models.VerifyPassword(user.Password, password)
+	if err != nil && err == bcrypt.ErrMismatchedHashAndPassword {
+		return "", err
+	}
+	return auth.CreateToken(user.ID)
 }
