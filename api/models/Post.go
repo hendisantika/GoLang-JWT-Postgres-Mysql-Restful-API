@@ -2,6 +2,7 @@ package models
 
 import (
 	"errors"
+	"github.com/jinzhu/gorm"
 	"html"
 	"strings"
 	"time"
@@ -38,4 +39,19 @@ func (p *Post) Validate() error {
 		return errors.New("Required Author")
 	}
 	return nil
+}
+
+func (p *Post) SavePost(db *gorm.DB) (*Post, error) {
+	var err error
+	err = db.Debug().Model(&Post{}).Create(&p).Error
+	if err != nil {
+		return &Post{}, err
+	}
+	if p.ID != 0 {
+		err = db.Debug().Model(&User{}).Where("id = ?", p.AuthorID).Take(&p.Author).Error
+		if err != nil {
+			return &Post{}, err
+		}
+	}
+	return p, nil
 }
